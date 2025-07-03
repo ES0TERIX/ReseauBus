@@ -1,0 +1,14 @@
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\bin\Debug\net8.0-windows\ReseauBus.exe
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\bin\Debug\net8.0-windows\ReseauBus.deps.json
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\bin\Debug\net8.0-windows\ReseauBus.runtimeconfig.json
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\bin\Debug\net8.0-windows\ReseauBus.dll
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\bin\Debug\net8.0-windows\ReseauBus.pdb
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\ReseauBus.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\ReseauBus.AssemblyInfoInputs.cache
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\ReseauBus.AssemblyInfo.cs
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\ReseauBus.csproj.CoreCompileInputs.cache
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\ReseauBus.dll
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\refint\ReseauBus.dll
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\ReseauBus.pdb
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\ReseauBus.genruntimeconfig.cache
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\ref\ReseauBus.dll
