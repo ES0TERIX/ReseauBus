@@ -12,3 +12,4 @@ C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\refint
 C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\ReseauBus.pdb
 C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\ReseauBus.genruntimeconfig.cache
 C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\ref\ReseauBus.dll
+C:\Users\thoma\RiderProjects\ReseauBus\ReseauBus\obj\Debug\net8.0-windows\ReseauBus.sourcelink.json
