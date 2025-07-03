@@ -3,7 +3,7 @@
 namespace ReseauBus.Core.Models
 {
     /// <summary>
-    /// Simulateur principal (Singleton) avec gestion temps réel - Conforme au diagramme UML
+    /// Simulateur simplifié - Les bus sont maintenant autonomes
     /// </summary>
     public class Simulateur
     {
@@ -11,17 +11,17 @@ namespace ReseauBus.Core.Models
         private static readonly object _lock = new object();
 
         public List<Simulation> Simulations { get; private set; }
-        public Horloge Horloge { get; private set; }
+        public Horloge Horloge => Horloge.Instance;
+        
         private List<IObserver> _observateurs;
         private System.Threading.Timer? _timerMiseAJour;
 
         private Simulateur()
         {
             Simulations = new List<Simulation>();
-            Horloge = new Horloge();
             _observateurs = new List<IObserver>();
             
-            // S'abonner aux changements d'heure pour notifier les observateurs
+            // S'abonner aux changements d'heure pour vérifier la fin des simulations
             Horloge.TempsChange += Horloge_TempsChange;
         }
 
@@ -52,21 +52,26 @@ namespace ReseauBus.Core.Models
             if (!Simulations.Contains(simulation))
             {
                 Simulations.Add(simulation);
+                
+                // S'abonner aux événements de la simulation
+                simulation.BusArrive += OnSimulationEvent;
+                simulation.BusPart += OnSimulationEvent;
+                simulation.BusChangeStatut += OnSimulationEvent;
             }
             
-            // Configurer l'horloge avec l'heure de début de la simulation
-            if (!Horloge.EnMarche)
+            // Exécuter la simulation (les bus vont se gérer eux-mêmes)
+            simulation.Executer();
+            
+            // Démarrer la mise à jour périodique des observateurs
+            if (_timerMiseAJour == null)
             {
-                Horloge.DefinirHeureDebut(simulation.HeureDebut);
-                Horloge.Start();
                 DemarrerMiseAJourPeriodique();
             }
             
-            // Exécuter la simulation
-            simulation.Executer();
-            
-            // Notifier tous les observateurs
+            // Notifier les observateurs
             NotifierObservateurs();
+            
+            Console.WriteLine($"[SIMULATEUR] Simulation '{simulation.Nom}' lancée");
         }
 
         /// <summary>
@@ -76,6 +81,11 @@ namespace ReseauBus.Core.Models
         {
             if (Simulations.Contains(simulation))
             {
+                // Se désabonner des événements
+                simulation.BusArrive -= OnSimulationEvent;
+                simulation.BusPart -= OnSimulationEvent;
+                simulation.BusChangeStatut -= OnSimulationEvent;
+                
                 simulation.Arreter();
                 Simulations.Remove(simulation);
             }
@@ -88,19 +98,40 @@ namespace ReseauBus.Core.Models
             }
             
             NotifierObservateurs();
+            Console.WriteLine($"[SIMULATEUR] Simulation '{simulation.Nom}' arrêtée");
         }
 
         /// <summary>
-        /// Démarre la mise à jour périodique
+        /// Gestionnaire des événements de simulation (arrivée/départ de bus)
+        /// </summary>
+        private void OnSimulationEvent(object? sender, BusEventArgs e)
+        {
+            // Les bus notifient déjà leurs changements, 
+            // ici on peut faire du logging ou des traitements spécifiques
+            if (e.TypeEvenement == "Arrivée")
+            {
+                Console.WriteLine($"[EVENT] {e.Bus.Immatriculation} arrive à {e.ArretActuel.Nom}");
+            }
+            else if (e.TypeEvenement == "Départ")
+            {
+                Console.WriteLine($"[EVENT] {e.Bus.Immatriculation} part vers {e.ArretSuivant?.Nom}");
+            }
+            
+            // Notifier les observateurs de l'interface
+            NotifierObservateurs();
+        }
+
+        /// <summary>
+        /// Démarre la mise à jour périodique des observateurs
         /// </summary>
         private void DemarrerMiseAJourPeriodique()
         {
-            // Timer pour mettre à jour les observateurs toutes les 2 secondes (au lieu de 500ms)
+            // Timer pour mettre à jour les observateurs toutes les 3 secondes
             _timerMiseAJour = new System.Threading.Timer(
                 callback: _ => NotifierObservateurs(),
                 state: null,
-                dueTime: TimeSpan.FromSeconds(2),
-                period: TimeSpan.FromSeconds(2)
+                dueTime: TimeSpan.FromSeconds(3),
+                period: TimeSpan.FromSeconds(3)
             );
         }
 
@@ -114,54 +145,19 @@ namespace ReseauBus.Core.Models
         }
 
         /// <summary>
-        /// Gestionnaire de changement d'heure
+        /// Gestionnaire de changement d'heure - Vérifie la fin des simulations
         /// </summary>
         private void Horloge_TempsChange(object? sender, DateTime nouvelleHeure)
         {
-            // Vérifier si les simulations doivent s'arrêter
+            // Vérifier si des simulations doivent s'arrêter
             var simulationsArreter = Simulations
                 .Where(s => s.EnCours && nouvelleHeure >= s.HeureFin)
                 .ToList();
 
             foreach (var simulation in simulationsArreter)
             {
+                Console.WriteLine($"[SIMULATEUR] Fin de simulation '{simulation.Nom}' à {nouvelleHeure:HH:mm}");
                 ArreterSimulation(simulation);
-            }
-
-            // Générer de nouveaux événements pour les simulations en cours
-            foreach (var simulation in Simulations.Where(s => s.EnCours))
-            {
-                GenererNouveauxEvenements(simulation, nouvelleHeure);
-            }
-        }
-
-        /// <summary>
-        /// Génère de nouveaux événements pour une simulation
-        /// </summary>
-        private void GenererNouveauxEvenements(Simulation simulation, DateTime heure)
-        {
-            // Logique simple pour ajouter des événements en temps réel
-            var random = new Random();
-            
-            foreach (var ligne in simulation.ListeLignes)
-            {
-                // Probabilité de générer un nouvel événement
-                if (random.Next(100) < 20) // 20% de chance par minute
-                {
-                    var arretDepart = ligne.ListArret[random.Next(ligne.ListArret.Count - 1)];
-                    var indexSuivant = ligne.ListArret.IndexOf(arretDepart) + 1;
-                    var arretArrivee = ligne.ListArret[indexSuivant];
-                    
-                    var evenement = new Evenement(
-                        heure.ToString("HH:mm"),
-                        $"{ligne.Nom.Replace(" ", "")}-{random.Next(1, 10):D2}",
-                        arretDepart,
-                        arretArrivee,
-                        $"00:0{random.Next(2, 6)}:00"
-                    );
-                    
-                    ligne.AjouterEvenement(evenement);
-                }
             }
         }
 
@@ -189,7 +185,7 @@ namespace ReseauBus.Core.Models
         /// </summary>
         private void NotifierObservateurs()
         {
-            var observateursACopie = _observateurs.ToList(); // Copie pour éviter les modifications concurrentes
+            var observateursACopie = _observateurs.ToList();
             
             foreach (var observateur in observateursACopie)
             {
@@ -199,8 +195,7 @@ namespace ReseauBus.Core.Models
                 }
                 catch (Exception ex)
                 {
-                    // Log l'erreur mais continue avec les autres observateurs
-                    Console.WriteLine($"Erreur lors de la notification d'un observateur : {ex.Message}");
+                    Console.WriteLine($"[ERREUR] Notification observateur : {ex.Message}");
                 }
             }
         }
@@ -219,7 +214,15 @@ namespace ReseauBus.Core.Models
         public void Dispose()
         {
             ArreterMiseAJourPeriodique();
-            Horloge.Stop();
+            
+            // Arrêter toutes les simulations
+            var simulations = Simulations.ToList();
+            foreach (var simulation in simulations)
+            {
+                ArreterSimulation(simulation);
+            }
+            
+            Horloge.Dispose();
             _observateurs.Clear();
         }
     }

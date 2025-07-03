@@ -4,7 +4,7 @@ using ReseauBus.UI.Forms;
 namespace ReseauBus.UI.Panels
 {
     /// <summary>
-    /// Panneau d'affichage textuel soigné sans clignotement
+    /// Panneau d'affichage textuel sans navigation - Affiche tous les bus
     /// </summary>
     public class PanneauTextuel : Panel, IPanneauSimulation
     {
@@ -13,15 +13,9 @@ namespace ReseauBus.UI.Panels
         private CheckedListBox _checkBoxLignes;
         private RichTextBox _richTextBoxEvenements;
         private Label _labelNombreInfo;
-        private Button _btnPrecedent;
-        private Button _btnSuivant;
-        private Button _btnHaut;
-        private Button _btnBas;
         private Label _labelTitre;
         
-        private List<InfoBus> _evenementsAffiches;
-        private int _indexEvenementActuel;
-        private const int EVENEMENTS_PAR_PAGE = 4;
+        private List<InfoBusAmeliore> _evenementsAffiches;
         private string _dernierContenu = string.Empty;
         private bool _miseAJourEnCours = false;
 
@@ -29,8 +23,7 @@ namespace ReseauBus.UI.Panels
         {
             _simulation = simulation;
             _configuration = configuration;
-            _evenementsAffiches = new List<InfoBus>();
-            _indexEvenementActuel = 0;
+            _evenementsAffiches = new List<InfoBusAmeliore>();
             
             // Activer le double buffering pour éviter le scintillement
             this.SetStyle(ControlStyles.AllPaintingInWmPaint | 
@@ -63,27 +56,24 @@ namespace ReseauBus.UI.Panels
                 BorderStyle = BorderStyle.FixedSingle
             };
 
-            // Panel pour les contrôles (lignes + navigation)
-            var panelControles = new TableLayoutPanel
+            // Panel pour les contrôles (lignes seulement)
+            var panelControles = new Panel
             {
                 Location = new Point(5, 35),
-                Size = new Size(this.Width - 10, 120),
+                Size = new Size(this.Width - 10, 80),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-                ColumnCount = 2,
-                RowCount = 1,
                 BackColor = Color.LightGray,
                 BorderStyle = BorderStyle.FixedSingle
             };
-            panelControles.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60F));
-            panelControles.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40F));
 
             // GroupBox pour les lignes
             var groupBoxLignes = new GroupBox
             {
                 Text = "Lignes à afficher :",
                 Font = new Font("Arial", 9, FontStyle.Bold),
-                Dock = DockStyle.Fill,
-                Margin = new Padding(3)
+                Location = new Point(5, 5),
+                Size = new Size(panelControles.Width - 200, 70),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
 
             _checkBoxLignes = new CheckedListBox
@@ -103,58 +93,27 @@ namespace ReseauBus.UI.Panels
 
             groupBoxLignes.Controls.Add(_checkBoxLignes);
 
-            // GroupBox pour la navigation
-            var groupBoxNavigation = new GroupBox
-            {
-                Text = "Navigation :",
-                Font = new Font("Arial", 9, FontStyle.Bold),
-                Dock = DockStyle.Fill,
-                Margin = new Padding(3)
-            };
-
-            var panelBoutons = new Panel
-            {
-                Dock = DockStyle.Fill,
-                Margin = new Padding(5)
-            };
-
-            // Boutons de navigation avec style
-            _btnHaut = CreerBoutonNavigation("▲", new Point(60, 15), "Page précédente");
-            _btnBas = CreerBoutonNavigation("▼", new Point(60, 50), "Page suivante");
-            _btnPrecedent = CreerBoutonNavigation("◄", new Point(20, 32), "Événement précédent");
-            _btnSuivant = CreerBoutonNavigation("►", new Point(100, 32), "Événement suivant");
-
-            _btnPrecedent.Click += BtnPrecedent_Click;
-            _btnSuivant.Click += BtnSuivant_Click;
-            _btnHaut.Click += BtnHaut_Click;
-            _btnBas.Click += BtnBas_Click;
-
-            // Label nombre d'informations
+            // Label nombre d'informations (à droite)
             _labelNombreInfo = new Label
             {
                 Text = "0 informations",
-                Location = new Point(10, 80),
-                Size = new Size(140, 20),
+                Location = new Point(panelControles.Width - 180, 25),
+                Size = new Size(160, 30),
                 TextAlign = ContentAlignment.MiddleCenter,
                 BackColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle,
-                Font = new Font("Arial", 8, FontStyle.Bold)
+                Font = new Font("Arial", 10, FontStyle.Bold),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right
             };
 
-            panelBoutons.Controls.AddRange(new Control[] {
-                _btnPrecedent, _btnHaut, _btnBas, _btnSuivant, _labelNombreInfo
-            });
-
-            groupBoxNavigation.Controls.Add(panelBoutons);
-
-            panelControles.Controls.Add(groupBoxLignes, 0, 0);
-            panelControles.Controls.Add(groupBoxNavigation, 1, 0);
+            panelControles.Controls.Add(groupBoxLignes);
+            panelControles.Controls.Add(_labelNombreInfo);
 
             // Zone de texte enrichie pour les événements
             _richTextBoxEvenements = new RichTextBox
             {
-                Location = new Point(5, 160),
-                Size = new Size(this.Width - 10, this.Height - 165),
+                Location = new Point(5, 120),
+                Size = new Size(this.Width - 10, this.Height - 125),
                 Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 ReadOnly = true,
                 Font = new Font("Consolas", 10),
@@ -172,25 +131,6 @@ namespace ReseauBus.UI.Panels
             this.ResumeLayout(false);
         }
 
-        private Button CreerBoutonNavigation(string texte, Point position, string tooltip)
-        {
-            var bouton = new Button
-            {
-                Text = texte,
-                Location = position,
-                Size = new Size(30, 25),
-                Font = new Font("Arial", 12, FontStyle.Bold),
-                BackColor = Color.LightBlue,
-                ForeColor = Color.DarkBlue,
-                FlatStyle = FlatStyle.Popup
-            };
-
-            var toolTip = new ToolTip();
-            toolTip.SetToolTip(bouton, tooltip);
-
-            return bouton;
-        }
-
         private void CheckBoxLignes_ItemCheck(object? sender, ItemCheckEventArgs e)
         {
             // Délai pour éviter les mises à jour trop fréquentes
@@ -202,42 +142,6 @@ namespace ReseauBus.UI.Panels
                     MettreAJourAffichage();
                     _miseAJourEnCours = false;
                 }));
-            }
-        }
-
-        private void BtnPrecedent_Click(object? sender, EventArgs e)
-        {
-            if (_indexEvenementActuel > 0)
-            {
-                _indexEvenementActuel--;
-                MettreAJourAffichage();
-            }
-        }
-
-        private void BtnSuivant_Click(object? sender, EventArgs e)
-        {
-            if (_indexEvenementActuel < _evenementsAffiches.Count - 1)
-            {
-                _indexEvenementActuel++;
-                MettreAJourAffichage();
-            }
-        }
-
-        private void BtnHaut_Click(object? sender, EventArgs e)
-        {
-            if (_indexEvenementActuel >= EVENEMENTS_PAR_PAGE)
-            {
-                _indexEvenementActuel -= EVENEMENTS_PAR_PAGE;
-                MettreAJourAffichage();
-            }
-        }
-
-        private void BtnBas_Click(object? sender, EventArgs e)
-        {
-            if (_indexEvenementActuel + EVENEMENTS_PAR_PAGE < _evenementsAffiches.Count)
-            {
-                _indexEvenementActuel += EVENEMENTS_PAR_PAGE;
-                MettreAJourAffichage();
             }
         }
 
@@ -269,27 +173,27 @@ namespace ReseauBus.UI.Panels
             var anciennesTaille = _evenementsAffiches.Count;
             _evenementsAffiches.Clear();
             var numeroInfo = 1;
+            var simulateur = Simulateur.Instance;
+            var heureActuelle = simulateur.Horloge.TempsActuel;
 
+            // Utiliser les bus actifs au lieu des événements stockés
             foreach (var ligne in _simulation.ListeLignes)
             {
                 if (EstLigneSelectionnee(ligne.Nom))
                 {
-                    foreach (var evenement in ligne.ListeEvenements.OrderBy(e => e.Heure))
+                    // Récupérer tous les bus actifs de cette ligne
+                    var busLigne = _simulation.ObtenirBusParLigne(ligne.Nom);
+                    
+                    foreach (var bus in busLigne)
                     {
-                        var infoBus = new InfoBus
+                        // Créer un InfoBusAmeliore à partir de l'état actuel du bus
+                        var infoBusAmeliore = CreerInfoBusDepuisBus(bus, numeroInfo, heureActuelle);
+                        
+                        if (infoBusAmeliore != null)
                         {
-                            Heure = evenement.Heure,
-                            Immatriculation = evenement.Bus,
-                            LieuDepart = evenement.Depart.Nom,
-                            LieuArrivee = evenement.Arrivee.Nom,
-                            Sens = DeterminerSens(ligne, evenement),
-                            Duree = evenement.Duree,
-                            Bus = ligne.Nom
-                        };
-
-                        infoBus.ListeEvenements = $"Info {numeroInfo}";
-                        _evenementsAffiches.Add(infoBus);
-                        numeroInfo++;
+                            _evenementsAffiches.Add(infoBusAmeliore);
+                            numeroInfo++;
+                        }
                     }
                 }
             }
@@ -298,6 +202,55 @@ namespace ReseauBus.UI.Panels
             if (_evenementsAffiches.Count != anciennesTaille)
             {
                 _dernierContenu = string.Empty; // Forcer la mise à jour
+            }
+        }
+
+        /// <summary>
+        /// Crée un InfoBusAmeliore à partir de l'état actuel d'un bus
+        /// </summary>
+        private InfoBusAmeliore? CreerInfoBusDepuisBus(Bus bus, int numeroInfo, DateTime heureActuelle)
+        {
+            try
+            {
+                // Déterminer le statut
+                var statut = bus.Statut == StatutBus.AArret ? "À l'arrêt" : "En circulation";
+                
+                // Déterminer le lieu de départ et d'arrivée
+                string lieuDepart, lieuArrivee;
+                
+                if (bus.Statut == StatutBus.AArret)
+                {
+                    lieuDepart = bus.ArretActuel.Nom;
+                    lieuArrivee = bus.ArretSuivant?.Nom ?? "Terminus";
+                }
+                else
+                {
+                    // En circulation - il va vers l'arrêt actuel
+                    lieuDepart = "En circulation";
+                    lieuArrivee = bus.ArretActuel.Nom;
+                }
+                
+                var sensNom = bus.SensAller ? "aller" : "retour";
+                var destination = bus.Destination;
+
+                return new InfoBusAmeliore
+                {
+                    Heure = heureActuelle.ToString("HH:mm"),
+                    NumeroInfo = numeroInfo,
+                    Ligne = bus.Ligne.Nom,
+                    Immatriculation = bus.Immatriculation,
+                    Statut = statut,
+                    LieuDepart = lieuDepart,
+                    LieuArrivee = lieuArrivee,
+                    SensNom = sensNom,
+                    Destination = destination,
+                    TempsRestant = bus.TempsRestantMinutes
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERREUR] Création InfoBus pour {bus.Immatriculation}: {ex.Message}");
+                return null;
             }
         }
 
@@ -313,13 +266,6 @@ namespace ReseauBus.UI.Panels
             return false;
         }
 
-        private int DeterminerSens(LigneBus ligne, Evenement evenement)
-        {
-            var indexDepart = ligne.ListArret.FindIndex(a => a.Id == evenement.Depart.Id);
-            var indexArrivee = ligne.ListArret.FindIndex(a => a.Id == evenement.Arrivee.Id);
-            return indexArrivee > indexDepart ? 1 : -1;
-        }
-
         private void MettreAJourAffichage()
         {
             // Mettre à jour le compteur
@@ -327,7 +273,7 @@ namespace ReseauBus.UI.Panels
 
             if (_evenementsAffiches.Count == 0)
             {
-                var contenuVide = "Aucun événement à afficher pour les lignes sélectionnées.";
+                var contenuVide = "Aucun événement récent à afficher pour les lignes sélectionnées.";
                 if (_dernierContenu != contenuVide)
                 {
                     _richTextBoxEvenements.Text = contenuVide;
@@ -367,56 +313,56 @@ namespace ReseauBus.UI.Panels
                 
                 _dernierContenu = nouveauContenu;
             }
-
-            // Mettre à jour l'état des boutons
-            MettreAJourBoutons();
         }
 
         private string GenererContenuAffichage()
         {
-            var evenementsDePage = _evenementsAffiches
-                .Skip(_indexEvenementActuel)
-                .Take(EVENEMENTS_PAR_PAGE)
-                .ToList();
-
-            return string.Join("|", evenementsDePage.Select(e => 
-                $"{e.Heure}-{e.Immatriculation}-{e.LieuDepart}-{e.LieuArrivee}"));
+            // Afficher TOUS les événements (pas de pagination)
+            return string.Join("|", _evenementsAffiches.Select(e => 
+                $"{e.Heure}-{e.Immatriculation}-{e.Statut}-{e.TempsRestant}"));
         }
 
         private void AjouterContenuFormate()
         {
-            var evenementsDePage = _evenementsAffiches
-                .Skip(_indexEvenementActuel)
-                .Take(EVENEMENTS_PAR_PAGE)
-                .ToList();
-
-            foreach (var infoBus in evenementsDePage)
+            // Afficher TOUS les événements (pas de pagination)
+            foreach (var infoBus in _evenementsAffiches)
             {
                 AjouterEvenementFormate(infoBus);
             }
         }
 
-        private void AjouterEvenementFormate(InfoBus infoBus)
+        private void AjouterEvenementFormate(InfoBusAmeliore infoBus)
         {
             // En-tête de l'événement
             _richTextBoxEvenements.SelectionFont = new Font("Arial", 11, FontStyle.Bold);
             _richTextBoxEvenements.SelectionColor = Color.DarkBlue;
-            _richTextBoxEvenements.AppendText($"{infoBus.Heure} - {infoBus.ListeEvenements} : Sur la ligne : {infoBus.Bus}\n");
+            _richTextBoxEvenements.AppendText($"{infoBus.Heure} - Info {infoBus.NumeroInfo} : Sur la ligne : {infoBus.Ligne}\n");
 
-            // Détails du bus
+            // Immatriculation du bus
             _richTextBoxEvenements.SelectionFont = new Font("Consolas", 9);
             _richTextBoxEvenements.SelectionColor = Color.Black;
-
             _richTextBoxEvenements.AppendText($"   Le bus immatriculé : ");
             _richTextBoxEvenements.SelectionFont = new Font("Consolas", 9, FontStyle.Bold);
             _richTextBoxEvenements.SelectionColor = Color.DarkGreen;
             _richTextBoxEvenements.AppendText($"{infoBus.Immatriculation}\n");
 
+            // Statut du bus avec couleur appropriée
+            _richTextBoxEvenements.SelectionFont = new Font("Consolas", 9, FontStyle.Bold);
+            var couleurStatut = infoBus.Statut switch
+            {
+                "À l'arrêt" => Color.Red,
+                "En circulation" => Color.Blue,
+                "Vient d'arriver" => Color.Green,
+                "Vient de partir" => Color.Orange,
+                _ => Color.Black
+            };
+            _richTextBoxEvenements.SelectionColor = couleurStatut;
+            _richTextBoxEvenements.AppendText($"   {infoBus.Statut}\n");
+
+            // Localisation
             _richTextBoxEvenements.SelectionFont = new Font("Consolas", 9);
             _richTextBoxEvenements.SelectionColor = Color.Black;
-            _richTextBoxEvenements.AppendText($"   En circulation\n");
-
-            _richTextBoxEvenements.AppendText($"   De : ");
+            _richTextBoxEvenements.AppendText($"   Localisation : ");
             _richTextBoxEvenements.SelectionColor = Color.DarkRed;
             _richTextBoxEvenements.AppendText($"{infoBus.LieuDepart}\n");
 
@@ -425,34 +371,37 @@ namespace ReseauBus.UI.Panels
             _richTextBoxEvenements.SelectionColor = Color.DarkRed;
             _richTextBoxEvenements.AppendText($"{infoBus.LieuArrivee}\n");
 
+            // Sens avec destination
             _richTextBoxEvenements.SelectionColor = Color.Black;
             _richTextBoxEvenements.AppendText($"   Sens circulation : ");
-            _richTextBoxEvenements.SelectionColor = infoBus.Sens == 1 ? Color.Green : Color.Orange;
-            _richTextBoxEvenements.AppendText($"{infoBus.Sens}\n");
+            _richTextBoxEvenements.SelectionColor = Color.Purple;
+            _richTextBoxEvenements.AppendText($"{infoBus.SensNom} (direction {infoBus.Destination})\n");
 
+            // Temps restant avec message approprié
             _richTextBoxEvenements.SelectionColor = Color.Black;
-            _richTextBoxEvenements.AppendText($"   Pour une durée de : ");
-            _richTextBoxEvenements.SelectionColor = Color.Blue;
-            _richTextBoxEvenements.AppendText($"{infoBus.Duree}\n");
+            var messageTemps = infoBus.Statut switch
+            {
+                "À l'arrêt" => $"   Temps d'arrêt restant : ",
+                "En circulation" => $"   Arrivée prévue dans : ",
+                "Vient d'arriver" => $"   Vient d'arriver à l'arrêt",
+                "Vient de partir" => $"   Vient de quitter l'arrêt",
+                _ => $"   Temps restant : "
+            };
+
+            _richTextBoxEvenements.AppendText(messageTemps);
+            if (infoBus.Statut == "À l'arrêt" || infoBus.Statut == "En circulation")
+            {
+                _richTextBoxEvenements.SelectionColor = Color.Blue;
+                _richTextBoxEvenements.AppendText($"{infoBus.TempsRestant} min\n");
+            }
+            else
+            {
+                _richTextBoxEvenements.AppendText("\n");
+            }
 
             // Séparateur
             _richTextBoxEvenements.SelectionColor = Color.LightGray;
             _richTextBoxEvenements.AppendText("\n" + new string('─', 50) + "\n\n");
-        }
-
-        private void MettreAJourBoutons()
-        {
-            _btnPrecedent.Enabled = _indexEvenementActuel > 0;
-            _btnSuivant.Enabled = _indexEvenementActuel < _evenementsAffiches.Count - 1;
-            _btnHaut.Enabled = _indexEvenementActuel >= EVENEMENTS_PAR_PAGE;
-            _btnBas.Enabled = _indexEvenementActuel + EVENEMENTS_PAR_PAGE < _evenementsAffiches.Count;
-
-            // Changer la couleur des boutons selon leur état
-            foreach (var btn in new[] { _btnPrecedent, _btnSuivant, _btnHaut, _btnBas })
-            {
-                btn.BackColor = btn.Enabled ? Color.LightBlue : Color.LightGray;
-                btn.ForeColor = btn.Enabled ? Color.DarkBlue : Color.Gray;
-            }
         }
 
         public void Demarrer()
@@ -470,5 +419,22 @@ namespace ReseauBus.UI.Panels
             base.OnResize(e);
             // Réajuster la taille des contrôles si nécessaire
         }
+    }
+
+    /// <summary>
+    /// Classe pour les informations de bus améliorées pour l'affichage
+    /// </summary>
+    public class InfoBusAmeliore
+    {
+        public string Heure { get; set; } = string.Empty;
+        public int NumeroInfo { get; set; }
+        public string Ligne { get; set; } = string.Empty;
+        public string Immatriculation { get; set; } = string.Empty;
+        public string Statut { get; set; } = string.Empty;
+        public string LieuDepart { get; set; } = string.Empty;
+        public string LieuArrivee { get; set; } = string.Empty;
+        public string SensNom { get; set; } = string.Empty;
+        public string Destination { get; set; } = string.Empty;
+        public int TempsRestant { get; set; }
     }
 }

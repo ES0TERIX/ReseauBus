@@ -1,9 +1,9 @@
 ﻿namespace ReseauBus.Core.Models
 {
     /// <summary>
-    /// Simulation avec logique de bus réaliste - Conforme au diagramme UML
+    /// Simulation avec bus autonomes qui se gèrent eux-mêmes
     /// </summary>
-    public class Simulation
+    public class Simulation : IDisposable
     {
         public string Nom { get; set; }
         public List<LigneBus> ListeLignes { get; set; }
@@ -11,173 +11,168 @@
         public DateTime HeureFin { get; set; }
         public bool EnCours { get; private set; }
         
-        private List<BusVirtuel> _busVirtuels;
+        // Liste des bus autonomes
+        public List<Bus> ListeBus { get; private set; }
+        
+        // Événements pour notifier l'interface
+        public event EventHandler<BusEventArgs>? BusArrive;
+        public event EventHandler<BusEventArgs>? BusPart;
+        public event EventHandler<BusEventArgs>? BusChangeStatut;
+
         private Random _random;
         private int _prochainIdBus;
+        private bool _disposed = false;
 
         public Simulation(string nom)
         {
             Nom = nom;
             ListeLignes = new List<LigneBus>();
-            _busVirtuels = new List<BusVirtuel>();
+            ListeBus = new List<Bus>();
             _random = new Random();
             _prochainIdBus = 1;
             HeureDebut = DateTime.Today.AddHours(6);
             HeureFin = DateTime.Today.AddHours(23);
         }
 
-        /// <summary>
-        /// Ajoute une ligne à la simulation
-        /// </summary>
         public void AjouterLigne(LigneBus ligne)
         {
             ListeLignes.Add(ligne);
         }
 
-        /// <summary>
-        /// Exécute la simulation avec logique réaliste
-        /// </summary>
         public void Executer()
         {
+            if (EnCours) return;
+            
             EnCours = true;
             
-            // Créer des bus virtuels pour chaque ligne
-            CreerBusVirtuels();
+            // Configurer l'horloge unique SEULEMENT si elle n'est pas déjà en marche
+            if (!Horloge.Instance.EnMarche)
+            {
+                Horloge.Instance.DefinirHeureDebut(HeureDebut);
+            }
             
-            // Générer les événements basés sur la simulation
-            GenererEvenementsRealistes();
+            // Créer les bus autonomes
+            CreerBusAutonomes();
+            
+            // Démarrer l'horloge si elle n'est pas déjà en marche
+            if (!Horloge.Instance.EnMarche)
+            {
+                Horloge.Instance.Start();
+            }
+            
+            Console.WriteLine($"[SIMULATION] {Nom} démarrée avec {ListeBus.Count} bus");
         }
 
-        /// <summary>
-        /// Arrête la simulation
-        /// </summary>
         public void Arreter()
         {
+            if (!EnCours) return;
+            
             EnCours = false;
+            
+            // Disposer tous les bus
+            foreach (var bus in ListeBus)
+            {
+                DesabonnerEvenementsBus(bus);
+                bus.Dispose();
+            }
+            ListeBus.Clear();
+            
+            Console.WriteLine($"[SIMULATION] {Nom} arrêtée");
         }
 
-        /// <summary>
-        /// Crée des bus virtuels pour chaque ligne
-        /// </summary>
-        private void CreerBusVirtuels()
+        private void CreerBusAutonomes()
         {
-            _busVirtuels.Clear();
-            
+            ListeBus.Clear();
+    
             foreach (var ligne in ListeLignes)
             {
-                // Créer 2-4 bus par ligne
-                int nombreBus = _random.Next(2, 5);
-                
+                // MODIFICATION : Créer 1 seul bus par ligne
+                int nombreBus = 1;
+        
                 for (int i = 0; i < nombreBus; i++)
                 {
-                    var bus = new BusVirtuel
-                    {
-                        Id = _prochainIdBus++,
-                        Immatriculation = $"{ligne.Nom.Replace(" ", "")}-{i + 1:D2}",
-                        Ligne = ligne,
-                        ArretActuelIndex = 0,
-                        SensAller = true,
-                        ProchainDepartPrevu = HeureDebut.AddMinutes(i * 15 + _random.Next(0, 10))
-                    };
-                    
-                    _busVirtuels.Add(bus);
+                    // Choisir un arrêt de départ aléatoire
+                    int arretDepart = _random.Next(0, ligne.ListArret.Count);
+            
+                    // Choisir un sens aléatoire
+                    bool sensAller = _random.NextDouble() > 0.5;
+            
+                    var bus = new Bus(
+                        immatriculation: $"{ligne.Nom.Replace(" ", "")}-{i + 1:D2}",
+                        ligne: ligne,
+                        arretInitialIndex: arretDepart,
+                        sensAller: sensAller
+                    );
+            
+                    // S'abonner aux événements du bus
+                    AbonnerEvenementsBus(bus);
+            
+                    ListeBus.Add(bus);
                 }
             }
+        }
+
+        private void AbonnerEvenementsBus(Bus bus)
+        {
+            bus.ArriveeArret += OnBusArrive;
+            bus.DepartArret += OnBusPart;
+            bus.StatutChange += OnBusChangeStatut;
+        }
+
+        private void DesabonnerEvenementsBus(Bus bus)
+        {
+            bus.ArriveeArret -= OnBusArrive;
+            bus.DepartArret -= OnBusPart;
+            bus.StatutChange -= OnBusChangeStatut;
+        }
+
+        private void OnBusArrive(object? sender, BusEventArgs e)
+        {
+            BusArrive?.Invoke(this, e);
+        }
+
+        private void OnBusPart(object? sender, BusEventArgs e)
+        {
+            BusPart?.Invoke(this, e);
+        }
+
+        private void OnBusChangeStatut(object? sender, BusEventArgs e)
+        {
+            BusChangeStatut?.Invoke(this, e);
         }
 
         /// <summary>
-        /// Génère des événements réalistes basés sur la simulation de bus
+        /// Retourne tous les bus actifs pour une ligne donnée
         /// </summary>
-        private void GenererEvenementsRealistes()
+        public List<Bus> ObtenirBusParLigne(string nomLigne)
         {
-            var simulateur = Simulateur.Instance;
-            var heureActuelle = HeureDebut;
-            
-            while (heureActuelle < HeureFin)
-            {
-                foreach (var bus in _busVirtuels)
-                {
-                    if (heureActuelle >= bus.ProchainDepartPrevu)
-                    {
-                        GenererEvenementBus(bus, heureActuelle);
-                    }
-                }
-                
-                heureActuelle = heureActuelle.AddMinutes(1);
-            }
+            return ListeBus.Where(b => b.Ligne.Nom == nomLigne).ToList();
         }
 
         /// <summary>
-        /// Génère un événement pour un bus spécifique
+        /// Retourne tous les événements récents formatés pour l'affichage
         /// </summary>
-        private void GenererEvenementBus(BusVirtuel bus, DateTime heure)
+        public List<string> ObtenirEvenementsRecents(int limiteMinutes = 10)
         {
-            var arretActuel = bus.Ligne.ListArret[bus.ArretActuelIndex];
-            Arret arretSuivant;
-            
-            // Déterminer l'arrêt suivant
-            if (bus.SensAller)
-            {
-                if (bus.ArretActuelIndex < bus.Ligne.ListArret.Count - 1)
-                {
-                    arretSuivant = bus.Ligne.ListArret[bus.ArretActuelIndex + 1];
-                    bus.ArretActuelIndex++;
-                }
-                else
-                {
-                    // Terminus - changer de sens
-                    bus.SensAller = false;
-                    arretSuivant = bus.Ligne.ListArret[bus.ArretActuelIndex - 1];
-                    bus.ArretActuelIndex--;
-                }
-            }
-            else
-            {
-                if (bus.ArretActuelIndex > 0)
-                {
-                    arretSuivant = bus.Ligne.ListArret[bus.ArretActuelIndex - 1];
-                    bus.ArretActuelIndex--;
-                }
-                else
-                {
-                    // Terminus - changer de sens
-                    bus.SensAller = true;
-                    arretSuivant = bus.Ligne.ListArret[bus.ArretActuelIndex + 1];
-                    bus.ArretActuelIndex++;
-                }
-            }
-            
-            // Calculer durée du trajet
-            var distance = arretActuel.DistanceVers(arretSuivant);
-            var dureeMinutes = Math.Max(2, distance * 0.5 + _random.NextDouble() * 2);
-            var dureeFormatee = TimeSpan.FromMinutes(dureeMinutes).ToString(@"hh\:mm\:ss");
-            
-            // Créer l'événement
-            var evenement = new Evenement(
-                heure.ToString("HH:mm"),
-                bus.Immatriculation,
-                arretActuel,
-                arretSuivant,
-                dureeFormatee
-            );
-            
-            bus.Ligne.AjouterEvenement(evenement);
-            
-            // Programmer le prochain départ
-            bus.ProchainDepartPrevu = heure.AddMinutes(dureeMinutes + _random.Next(1, 3));
-        }
-    }
+            var evenements = new List<string>();
+            var heureActuelle = Horloge.Instance.TempsActuel;
+            int numeroInfo = 1;
 
-    /// <summary>
-    /// Représentation virtuelle d'un bus pour la simulation
-    /// </summary>
-    internal class BusVirtuel
-    {
-        public int Id { get; set; }
-        public string Immatriculation { get; set; } = string.Empty;
-        public LigneBus Ligne { get; set; } = null!;
-        public int ArretActuelIndex { get; set; }
-        public bool SensAller { get; set; }
-        public DateTime ProchainDepartPrevu { get; set; }
+            foreach (var bus in ListeBus.OrderBy(b => b.Ligne.Nom).ThenBy(b => b.Immatriculation))
+            {
+                // Inclure tous les bus actifs (pas de limite de temps pour le moment)
+                evenements.Add(bus.FormaterInfo(numeroInfo++));
+            }
+
+            return evenements;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            
+            Arreter();
+            _disposed = true;
+        }
     }
 }
