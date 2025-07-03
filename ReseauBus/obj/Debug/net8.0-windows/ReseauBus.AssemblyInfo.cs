@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ReseauBus")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+86df90f769b7005f29768b4a4e2894b9e24aa0f2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6c0fe7395665d4ee300585e95345b8be0120798f")]
 [assembly: System.Reflection.AssemblyProductAttribute("ReseauBus")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ReseauBus")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
