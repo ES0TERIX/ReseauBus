@@ -3,14 +3,12 @@
 namespace ReseauBus.Core.Models
 {
     /// <summary>
-    /// Ligne de bus - Conforme au diagramme UML
+    /// Ligne de bus - Version nettoyée
     /// </summary>
     public class LigneBus
     {
         public string Nom { get; set; }
         public List<Arret> ListArret { get; set; }
-        public List<Evenement> ListeEvenements { get; set; }
-        public string ListeInfo { get; set; }
         public Color Couleur { get; set; }
 
         public LigneBus(string nom, Color couleur)
@@ -18,19 +16,6 @@ namespace ReseauBus.Core.Models
             Nom = nom;
             Couleur = couleur;
             ListArret = new List<Arret>();
-            ListeEvenements = new List<Evenement>();
-            ListeInfo = string.Empty;
-        }
-
-        /// <summary>
-        /// Filtre les événements par heure
-        /// </summary>
-        public List<Evenement> FiltrerParHeure(string heureDebut, string heureFin)
-        {
-            // Logique de filtrage par heure
-            return ListeEvenements.Where(e => 
-                string.Compare(e.Heure, heureDebut) >= 0 && 
-                string.Compare(e.Heure, heureFin) <= 0).ToList();
         }
 
         /// <summary>
@@ -39,21 +24,6 @@ namespace ReseauBus.Core.Models
         public void AjouterArret(Arret arret)
         {
             ListArret.Add(arret);
-        }
-
-        /// <summary>
-        /// Ajoute un événement à la ligne
-        /// </summary>
-        public void AjouterEvenement(Evenement evenement)
-        {
-            ListeEvenements.Add(evenement);
-            
-            // Mettre à jour la liste d'infos
-            if (!string.IsNullOrEmpty(ListeInfo))
-            {
-                ListeInfo += "\n";
-            }
-            ListeInfo += evenement.ToString();
         }
 
         /// <summary>

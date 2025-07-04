@@ -249,15 +249,6 @@ namespace ReseauBus.Core.Models
     }
 
     /// <summary>
-    /// Statuts possibles d'un bus
-    /// </summary>
-    public enum StatutBus
-    {
-        AArret,
-        EnCirculation
-    }
-
-    /// <summary>
     /// Arguments d'événement pour les changements de statut du bus
     /// </summary>
     public class BusEventArgs : EventArgs
