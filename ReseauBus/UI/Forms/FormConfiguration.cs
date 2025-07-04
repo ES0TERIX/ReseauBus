@@ -4,7 +4,7 @@ using ReseauBus.Data;
 namespace ReseauBus.UI.Forms
 {
     /// <summary>
-    /// Formulaire de configuration des simulations - Version nettoyée
+    /// Formulaire de configuration des simulations - Version corrigée
     /// </summary>
     public partial class FormConfiguration : Form
     {
@@ -127,7 +127,8 @@ namespace ReseauBus.UI.Forms
             var dtpDebut = new DateTimePicker
             {
                 Name = $"dtpDebut_{index}",
-                Format = DateTimePickerFormat.Time,
+                Format = DateTimePickerFormat.Custom,
+                CustomFormat = "HH:mm",
                 ShowUpDown = true,
                 Location = new Point(120, 78),
                 Size = new Size(80, 25),
@@ -144,7 +145,8 @@ namespace ReseauBus.UI.Forms
             var dtpFin = new DateTimePicker
             {
                 Name = $"dtpFin_{index}",
-                Format = DateTimePickerFormat.Time,
+                Format = DateTimePickerFormat.Custom,
+                CustomFormat = "HH:mm",
                 ShowUpDown = true,
                 Location = new Point(120, 108),
                 Size = new Size(80, 25),
@@ -216,15 +218,36 @@ namespace ReseauBus.UI.Forms
                     cmbType?.SelectedItem?.ToString() != "Aucune" &&
                     dtpDebut != null && dtpFin != null)
                 {
+                    // CORRECTION : Construire correctement les DateTime avec la date du jour
+                    var aujourdhui = DateTime.Today;
+                    var heureDebut = new DateTime(
+                        aujourdhui.Year, 
+                        aujourdhui.Month, 
+                        aujourdhui.Day,
+                        dtpDebut.Value.Hour,
+                        dtpDebut.Value.Minute,
+                        dtpDebut.Value.Second
+                    );
+                    
+                    var heureFin = new DateTime(
+                        aujourdhui.Year, 
+                        aujourdhui.Month, 
+                        aujourdhui.Day,
+                        dtpFin.Value.Hour,
+                        dtpFin.Value.Minute,
+                        dtpFin.Value.Second
+                    );
+
                     var config = new ConfigurationSimulation
                     {
                         Position = (PositionPanel)i,
                         NomSimulation = cmbSimulation.SelectedItem.ToString() ?? "Amiens semaine",
-                        HeureDebut = dtpDebut.Value,
-                        HeureFin = dtpFin.Value,
+                        HeureDebut = heureDebut,  // Utiliser la vraie heure
+                        HeureFin = heureFin,      // Utiliser la vraie heure
                         TypeVisualisation = Enum.Parse<TypeVisualisation>(cmbType.SelectedItem.ToString() ?? "Textuelle")
                     };
 
+                    Console.WriteLine($"[CONFIG] Panel {i}: Début={config.HeureDebut:HH:mm}, Fin={config.HeureFin:HH:mm}");
                     Configurations.Add(config);
                 }
             }

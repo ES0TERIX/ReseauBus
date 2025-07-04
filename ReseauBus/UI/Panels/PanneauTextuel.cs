@@ -4,7 +4,7 @@ using ReseauBus.UI.Forms;
 namespace ReseauBus.UI.Panels
 {
     /// <summary>
-    /// Panneau d'affichage textuel - Version nettoyée
+    /// Panneau d'affichage textuel - Affiche aussi les bus en attente de démarrage
     /// </summary>
     public class PanneauTextuel : Panel, IPanneauSimulation
     {
@@ -212,7 +212,26 @@ namespace ReseauBus.UI.Panels
         {
             try
             {
-                // Déterminer le statut
+                // NOUVEAU : Vérifier si le bus peut démarrer
+                if (!bus.PeutDemarrer)
+                {
+                    var minutesAvantDemarrage = (int)(bus.HeureDebutSimulation - heureActuelle).TotalMinutes;
+                    return new InfoBus
+                    {
+                        Heure = heureActuelle.ToString("HH:mm"),
+                        NumeroInfo = numeroInfo,
+                        Ligne = bus.Ligne.Nom,
+                        Immatriculation = bus.Immatriculation,
+                        Statut = "En attente de démarrage",
+                        LieuDepart = bus.ArretActuel.Nom,
+                        LieuArrivee = "Démarrage prévu",
+                        SensNom = bus.SensAller ? "aller" : "retour",
+                        Destination = bus.Destination,
+                        TempsRestant = minutesAvantDemarrage
+                    };
+                }
+                
+                // Déterminer le statut pour les bus actifs
                 var statut = bus.Statut == StatutBus.AArret ? "À l'arrêt" : "En circulation";
                 
                 // Déterminer le lieu de départ et d'arrivée
@@ -352,6 +371,7 @@ namespace ReseauBus.UI.Panels
             {
                 "À l'arrêt" => Color.Red,
                 "En circulation" => Color.Blue,
+                "En attente de démarrage" => Color.Purple, // NOUVEAU
                 "Vient d'arriver" => Color.Green,
                 "Vient de partir" => Color.Orange,
                 _ => Color.Black
@@ -359,44 +379,67 @@ namespace ReseauBus.UI.Panels
             _richTextBoxEvenements.SelectionColor = couleurStatut;
             _richTextBoxEvenements.AppendText($"   {infoBus.Statut}\n");
 
-            // Localisation
-            _richTextBoxEvenements.SelectionFont = new Font("Consolas", 9);
-            _richTextBoxEvenements.SelectionColor = Color.Black;
-            _richTextBoxEvenements.AppendText($"   Localisation : ");
-            _richTextBoxEvenements.SelectionColor = Color.DarkRed;
-            _richTextBoxEvenements.AppendText($"{infoBus.LieuDepart}\n");
-
-            _richTextBoxEvenements.SelectionColor = Color.Black;
-            _richTextBoxEvenements.AppendText($"   Vers : ");
-            _richTextBoxEvenements.SelectionColor = Color.DarkRed;
-            _richTextBoxEvenements.AppendText($"{infoBus.LieuArrivee}\n");
-
-            // Sens avec destination
-            _richTextBoxEvenements.SelectionColor = Color.Black;
-            _richTextBoxEvenements.AppendText($"   Sens circulation : ");
-            _richTextBoxEvenements.SelectionColor = Color.Purple;
-            _richTextBoxEvenements.AppendText($"{infoBus.SensNom} (direction {infoBus.Destination})\n");
-
-            // Temps restant avec message approprié
-            _richTextBoxEvenements.SelectionColor = Color.Black;
-            var messageTemps = infoBus.Statut switch
+            // NOUVEAU : Affichage spécial pour les bus en attente
+            if (infoBus.Statut == "En attente de démarrage")
             {
-                "À l'arrêt" => $"   Temps d'arrêt restant : ",
-                "En circulation" => $"   Arrivée prévue dans : ",
-                "Vient d'arriver" => $"   Vient d'arriver à l'arrêt",
-                "Vient de partir" => $"   Vient de quitter l'arrêt",
-                _ => $"   Temps restant : "
-            };
+                _richTextBoxEvenements.SelectionFont = new Font("Consolas", 9);
+                _richTextBoxEvenements.SelectionColor = Color.Black;
+                _richTextBoxEvenements.AppendText($"   Lieu de démarrage : ");
+                _richTextBoxEvenements.SelectionColor = Color.DarkRed;
+                _richTextBoxEvenements.AppendText($"{infoBus.LieuDepart}\n");
 
-            _richTextBoxEvenements.AppendText(messageTemps);
-            if (infoBus.Statut == "À l'arrêt" || infoBus.Statut == "En circulation")
-            {
-                _richTextBoxEvenements.SelectionColor = Color.Blue;
+                _richTextBoxEvenements.SelectionColor = Color.Black;
+                _richTextBoxEvenements.AppendText($"   Sens circulation : ");
+                _richTextBoxEvenements.SelectionColor = Color.Purple;
+                _richTextBoxEvenements.AppendText($"{infoBus.SensNom} (direction {infoBus.Destination})\n");
+
+                _richTextBoxEvenements.SelectionColor = Color.Black;
+                _richTextBoxEvenements.AppendText($"   Démarrage dans : ");
+                _richTextBoxEvenements.SelectionColor = Color.Purple;
                 _richTextBoxEvenements.AppendText($"{infoBus.TempsRestant} min\n");
             }
             else
             {
-                _richTextBoxEvenements.AppendText("\n");
+                // Affichage normal pour les bus actifs
+                // Localisation
+                _richTextBoxEvenements.SelectionFont = new Font("Consolas", 9);
+                _richTextBoxEvenements.SelectionColor = Color.Black;
+                _richTextBoxEvenements.AppendText($"   Localisation : ");
+                _richTextBoxEvenements.SelectionColor = Color.DarkRed;
+                _richTextBoxEvenements.AppendText($"{infoBus.LieuDepart}\n");
+
+                _richTextBoxEvenements.SelectionColor = Color.Black;
+                _richTextBoxEvenements.AppendText($"   Vers : ");
+                _richTextBoxEvenements.SelectionColor = Color.DarkRed;
+                _richTextBoxEvenements.AppendText($"{infoBus.LieuArrivee}\n");
+
+                // Sens avec destination
+                _richTextBoxEvenements.SelectionColor = Color.Black;
+                _richTextBoxEvenements.AppendText($"   Sens circulation : ");
+                _richTextBoxEvenements.SelectionColor = Color.Purple;
+                _richTextBoxEvenements.AppendText($"{infoBus.SensNom} (direction {infoBus.Destination})\n");
+
+                // Temps restant avec message approprié
+                _richTextBoxEvenements.SelectionColor = Color.Black;
+                var messageTemps = infoBus.Statut switch
+                {
+                    "À l'arrêt" => $"   Temps d'arrêt restant : ",
+                    "En circulation" => $"   Arrivée prévue dans : ",
+                    "Vient d'arriver" => $"   Vient d'arriver à l'arrêt",
+                    "Vient de partir" => $"   Vient de quitter l'arrêt",
+                    _ => $"   Temps restant : "
+                };
+
+                _richTextBoxEvenements.AppendText(messageTemps);
+                if (infoBus.Statut == "À l'arrêt" || infoBus.Statut == "En circulation")
+                {
+                    _richTextBoxEvenements.SelectionColor = Color.Blue;
+                    _richTextBoxEvenements.AppendText($"{infoBus.TempsRestant} min\n");
+                }
+                else
+                {
+                    _richTextBoxEvenements.AppendText("\n");
+                }
             }
 
             // Séparateur
