@@ -4,7 +4,7 @@ using System.Timers;
 namespace ReseauBus.Core.Models
 {
     /// <summary>
-    /// Bus autonome et conscient de lui-même - Notifie ses changements d'état
+    /// Bus autonome et conscient de lui-même - Respecte l'heure de début de sa simulation
     /// </summary>
     public class Bus : IDisposable
     {
@@ -19,6 +19,8 @@ namespace ReseauBus.Core.Models
         public bool SensAller { get; private set; }
         public StatutBus Statut { get; private set; }
         public DateTime ProchainChangementStatut { get; private set; }
+        public DateTime HeureDebutSimulation { get; private set; } // NOUVEAU
+        public bool PeutDemarrer => Horloge.Instance.TempsActuel >= HeureDebutSimulation; // NOUVEAU
         public int TempsRestantMinutes => Math.Max(0, (int)(ProchainChangementStatut - Horloge.Instance.TempsActuel).TotalMinutes);
 
         // Événements pour notifier l'interface
@@ -26,17 +28,31 @@ namespace ReseauBus.Core.Models
         public event EventHandler<BusEventArgs>? ArriveeArret;
         public event EventHandler<BusEventArgs>? DepartArret;
 
-        public Bus(string immatriculation, LigneBus ligne, int arretInitialIndex = 0, bool sensAller = true)
+        public Bus(string immatriculation, LigneBus ligne, DateTime heureDebutSimulation, int arretInitialIndex = 0, bool sensAller = true)
         {
             Immatriculation = immatriculation;
             Ligne = ligne;
             ArretActuelIndex = arretInitialIndex;
             SensAller = sensAller;
-            Statut = StatutBus.AArret;
+            HeureDebutSimulation = heureDebutSimulation; // NOUVEAU
             
-            // Départ initial dans 1-5 minutes
-            var random = new Random();
-            ProchainChangementStatut = Horloge.Instance.TempsActuel.AddMinutes(random.Next(1, 6));
+            // MODIFICATION : Le bus commence en attente si l'heure n'est pas encore arrivée
+            if (PeutDemarrer)
+            {
+                Statut = StatutBus.AArret;
+                // Départ initial dans 1-5 minutes
+                var random = new Random();
+                ProchainChangementStatut = Horloge.Instance.TempsActuel.AddMinutes(random.Next(1, 6));
+            }
+            else
+            {
+                Statut = StatutBus.AArret;
+                // Attendre jusqu'à l'heure de début + un délai aléatoire
+                var random = new Random();
+                ProchainChangementStatut = HeureDebutSimulation.AddMinutes(random.Next(1, 6));
+                
+                Console.WriteLine($"[BUS] {Immatriculation} attend jusqu'à {ProchainChangementStatut:HH:mm} pour démarrer");
+            }
             
             DemarrerTimer();
         }
@@ -56,6 +72,13 @@ namespace ReseauBus.Core.Models
 
                 var heureActuelle = Horloge.Instance.TempsActuel;
                 
+                // NOUVEAU : Vérifier si le bus peut démarrer
+                if (!PeutDemarrer)
+                {
+                    // Le bus n'a pas encore le droit de démarrer
+                    return;
+                }
+                
                 if (heureActuelle >= ProchainChangementStatut)
                 {
                     ChangerStatut();
@@ -65,6 +88,13 @@ namespace ReseauBus.Core.Models
 
         private void ChangerStatut()
         {
+            // NOUVEAU : Double vérification avant de changer de statut
+            if (!PeutDemarrer)
+            {
+                Console.WriteLine($"[BUS] {Immatriculation} tente de changer de statut avant son heure de début");
+                return;
+            }
+
             var random = new Random();
             var heureActuelle = Horloge.Instance.TempsActuel;
 
@@ -210,6 +240,20 @@ namespace ReseauBus.Core.Models
         public string FormaterInfo(int numeroInfo)
         {
             var heure = Horloge.Instance.TempsActuel.ToString("HH:mm");
+            var heureActuelle = Horloge.Instance.TempsActuel;
+            
+            // NOUVEAU : Affichage spécial si le bus n'a pas encore démarré
+            if (!PeutDemarrer)
+            {
+                var minutesAvantDemarrage = (int)(HeureDebutSimulation - heureActuelle).TotalMinutes;
+                return $"{heure} - Info {numeroInfo} : Sur la ligne : {Ligne.Nom}\n" +
+                       $"   Le bus immatriculé : {Immatriculation}\n" +
+                       $"   En attente de démarrage\n" +
+                       $"   Démarrage prévu dans : {minutesAvantDemarrage} min\n" +
+                       $"   Lieu de démarrage : {ArretActuel.Nom}\n" +
+                       $"   Direction : {Destination}";
+            }
+            
             var statutTexte = Statut == StatutBus.AArret ? "À l'arrêt" : "En circulation";
             var sensNom = SensAller ? "aller" : "retour";
             
@@ -246,15 +290,6 @@ namespace ReseauBus.Core.Models
                 _disposed = true;
             }
         }
-    }
-
-    /// <summary>
-    /// Statuts possibles d'un bus
-    /// </summary>
-    public enum StatutBus
-    {
-        AArret,
-        EnCirculation
     }
 
     /// <summary>

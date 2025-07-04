@@ -1,7 +1,7 @@
 ﻿namespace ReseauBus.Core.Models
 {
     /// <summary>
-    /// Simulation avec bus autonomes qui se gèrent eux-mêmes
+    /// Simulation avec bus autonomes - Les bus respectent leur heure de début
     /// </summary>
     public class Simulation : IDisposable
     {
@@ -30,6 +30,8 @@
             ListeBus = new List<Bus>();
             _random = new Random();
             _prochainIdBus = 1;
+            
+            // Valeurs par défaut - seront écrasées par la configuration
             HeureDebut = DateTime.Today.AddHours(6);
             HeureFin = DateTime.Today.AddHours(23);
         }
@@ -45,22 +47,10 @@
             
             EnCours = true;
             
-            // Configurer l'horloge unique SEULEMENT si elle n'est pas déjà en marche
-            if (!Horloge.Instance.EnMarche)
-            {
-                Horloge.Instance.DefinirHeureDebut(HeureDebut);
-            }
-            
-            // Créer les bus autonomes
+            // Créer les bus autonomes avec leur heure de début
             CreerBusAutonomes();
             
-            // Démarrer l'horloge si elle n'est pas déjà en marche
-            if (!Horloge.Instance.EnMarche)
-            {
-                Horloge.Instance.Start();
-            }
-            
-            Console.WriteLine($"[SIMULATION] {Nom} démarrée avec {ListeBus.Count} bus");
+            Console.WriteLine($"[SIMULATION] {Nom} démarrée avec {ListeBus.Count} bus (Début: {HeureDebut:HH:mm}, Heure actuelle: {Horloge.Instance.TempsActuel:HH:mm})");
         }
 
         public void Arreter()
@@ -86,7 +76,7 @@
     
             foreach (var ligne in ListeLignes)
             {
-                // MODIFICATION : Créer 1 seul bus par ligne
+                // Créer 1 seul bus par ligne
                 int nombreBus = 1;
         
                 for (int i = 0; i < nombreBus; i++)
@@ -97,9 +87,11 @@
                     // Choisir un sens aléatoire
                     bool sensAller = _random.NextDouble() > 0.5;
             
+                    // MODIFICATION : Passer l'heure de début de la simulation au bus
                     var bus = new Bus(
                         immatriculation: $"{ligne.Nom.Replace(" ", "")}-{i + 1:D2}",
                         ligne: ligne,
+                        heureDebutSimulation: this.HeureDebut, // NOUVEAU PARAMÈTRE
                         arretInitialIndex: arretDepart,
                         sensAller: sensAller
                     );
@@ -108,6 +100,8 @@
                     AbonnerEvenementsBus(bus);
             
                     ListeBus.Add(bus);
+                    
+                    Console.WriteLine($"[SIMULATION] Bus {bus.Immatriculation} créé - Début prévu: {this.HeureDebut:HH:mm}");
                 }
             }
         }
@@ -160,7 +154,7 @@
 
             foreach (var bus in ListeBus.OrderBy(b => b.Ligne.Nom).ThenBy(b => b.Immatriculation))
             {
-                // Inclure tous les bus actifs (pas de limite de temps pour le moment)
+                // Inclure tous les bus (y compris ceux en attente de démarrage)
                 evenements.Add(bus.FormaterInfo(numeroInfo++));
             }
 

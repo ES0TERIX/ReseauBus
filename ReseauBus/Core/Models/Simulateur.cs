@@ -3,7 +3,7 @@
 namespace ReseauBus.Core.Models
 {
     /// <summary>
-    /// Simulateur simplifié - Les bus sont maintenant autonomes
+    /// Simulateur corrigé - Démarre à l'heure la plus tôt de toutes les simulations
     /// </summary>
     public class Simulateur
     {
@@ -15,6 +15,8 @@ namespace ReseauBus.Core.Models
         
         private List<IObserver> _observateurs;
         private System.Threading.Timer? _timerMiseAJour;
+        private bool _horlogeDemarree = false;
+        private DateTime? _heureDebutGlobale = null; // NOUVEAU
 
         private Simulateur()
         {
@@ -59,7 +61,51 @@ namespace ReseauBus.Core.Models
                 simulation.BusChangeStatut += OnSimulationEvent;
             }
             
-            // Exécuter la simulation (les bus vont se gérer eux-mêmes)
+            // CORRECTION : Calculer l'heure de début globale
+            if (_heureDebutGlobale == null)
+            {
+                _heureDebutGlobale = simulation.HeureDebut;
+                Console.WriteLine($"[SIMULATEUR] Première simulation - Heure de début globale: {_heureDebutGlobale:HH:mm}");
+            }
+            else
+            {
+                // Prendre l'heure la plus tôt
+                if (simulation.HeureDebut < _heureDebutGlobale)
+                {
+                    _heureDebutGlobale = simulation.HeureDebut;
+                    Console.WriteLine($"[SIMULATEUR] Nouvelle heure de début globale (plus tôt): {_heureDebutGlobale:HH:mm}");
+                    
+                    // Si l'horloge est déjà démarrée, il faut la remettre à la nouvelle heure
+                    if (_horlogeDemarree && Horloge.EnMarche)
+                    {
+                        Console.WriteLine($"[SIMULATEUR] Redéfinition de l'heure de l'horloge active");
+                        Horloge.Stop();
+                        Horloge.DefinirHeureDebut(_heureDebutGlobale.Value);
+                        Horloge.Start();
+                    }
+                }
+            }
+            
+            // CORRECTION : Ne démarrer l'horloge qu'une seule fois avec l'heure globale
+            if (!_horlogeDemarree)
+            {
+                // Définir l'heure de début globale
+                if (!Horloge.EnMarche && _heureDebutGlobale.HasValue)
+                {
+                    Console.WriteLine($"[SIMULATEUR] Définition heure début globale: {_heureDebutGlobale:HH:mm}");
+                    Horloge.DefinirHeureDebut(_heureDebutGlobale.Value);
+                }
+                
+                // Démarrer l'horloge
+                if (!Horloge.EnMarche)
+                {
+                    Horloge.Start();
+                }
+                
+                _horlogeDemarree = true;
+            }
+            
+            // Exécuter la simulation (les bus vont attendre leur heure de début)
             simulation.Executer();
             
             // Démarrer la mise à jour périodique des observateurs
@@ -71,7 +117,8 @@ namespace ReseauBus.Core.Models
             // Notifier les observateurs
             NotifierObservateurs();
             
-            Console.WriteLine($"[SIMULATEUR] Simulation '{simulation.Nom}' lancée");
+            Console.WriteLine($"[SIMULATEUR] Simulation '{simulation.Nom}' lancée (Début: {simulation.HeureDebut:HH:mm}, Fin: {simulation.HeureFin:HH:mm})");
+            Console.WriteLine($"[SIMULATEUR] Heure actuelle de l'horloge: {Horloge.TempsActuel:HH:mm}");
         }
 
         /// <summary>
@@ -95,6 +142,8 @@ namespace ReseauBus.Core.Models
             {
                 Horloge.Stop();
                 ArreterMiseAJourPeriodique();
+                _horlogeDemarree = false;
+                _heureDebutGlobale = null; // NOUVEAU : Reset de l'heure globale
             }
             
             NotifierObservateurs();
@@ -209,6 +258,14 @@ namespace ReseauBus.Core.Models
         }
 
         /// <summary>
+        /// NOUVEAU : Retourne l'heure de début globale actuelle
+        /// </summary>
+        public DateTime? ObtenirHeureDebutGlobale()
+        {
+            return _heureDebutGlobale;
+        }
+
+        /// <summary>
         /// Nettoie les ressources
         /// </summary>
         public void Dispose()
@@ -224,6 +281,8 @@ namespace ReseauBus.Core.Models
             
             Horloge.Dispose();
             _observateurs.Clear();
+            _horlogeDemarree = false;
+            _heureDebutGlobale = null;
         }
     }
 }
