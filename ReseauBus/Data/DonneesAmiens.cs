@@ -3,17 +3,11 @@ using ReseauBus.Core.Models;
 
 namespace ReseauBus.Data
 {
-    /// <summary>
-    /// Contient les données statiques du réseau d'Amiens - Version simplifiée
-    /// </summary>
     public static class DonneesAmiens
     {
         private static List<Arret>? _arrets;
         private static List<LigneBus>? _lignes;
 
-        /// <summary>
-        /// Retourne tous les arrêts d'Amiens
-        /// </summary>
         public static List<Arret> ObtenirArrets()
         {
             if (_arrets == null)
@@ -23,9 +17,6 @@ namespace ReseauBus.Data
             return _arrets!;
         }
 
-        /// <summary>
-        /// Retourne toutes les lignes d'Amiens
-        /// </summary>
         public static List<LigneBus> ObtenirLignes()
         {
             if (_lignes == null)
@@ -35,9 +26,6 @@ namespace ReseauBus.Data
             return _lignes!;
         }
 
-        /// <summary>
-        /// Trouve un arrêt par son ID
-        /// </summary>
         public static Arret? TrouverArret(int id)
         {
             return ObtenirArrets().FirstOrDefault(a => a.Id == id);
@@ -160,7 +148,6 @@ namespace ReseauBus.Data
             var arrets = ObtenirArrets();
             _lignes = new List<LigneBus>();
 
-            // Ligne Nemo 1 (Rouge)
             var nemo1 = new LigneBus("Nemo 1", Color.Red);
             var idsNemo1 = new[] { 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 14, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63 };
             foreach (var id in idsNemo1)
@@ -170,7 +157,6 @@ namespace ReseauBus.Data
             }
             _lignes.Add(nemo1);
 
-            // Ligne Nemo 2 (Bleu)
             var nemo2 = new LigneBus("Nemo 2", Color.Blue);
             var idsNemo2 = new[] { 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 13, 14, 15, 16, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85 };
             foreach (var id in idsNemo2)
@@ -180,7 +166,6 @@ namespace ReseauBus.Data
             }
             _lignes.Add(nemo2);
 
-            // Ligne Nemo 3 (Vert)
             var nemo3 = new LigneBus("Nemo 3", Color.Green);
             var idsNemo3 = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27 };
             foreach (var id in idsNemo3)
@@ -190,7 +175,6 @@ namespace ReseauBus.Data
             }
             _lignes.Add(nemo3);
 
-            // Ligne Nemo 4 (Orange)
             var nemo4 = new LigneBus("Nemo 4", Color.Orange);
             var idsNemo4 = new[] { 86, 87, 88, 89, 76, 75, 90, 91, 92, 14, 48, 49, 50, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106 };
             foreach (var id in idsNemo4)

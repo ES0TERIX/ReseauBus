@@ -1,11 +1,7 @@
-﻿using ReseauBus.Core.Models;
-using ReseauBus.Data;
+﻿using ReseauBus.Data;
 
 namespace ReseauBus.UI.Forms
 {
-    /// <summary>
-    /// Formulaire de configuration des simulations - Version corrigée
-    /// </summary>
     public partial class FormConfiguration : Form
     {
         public List<ConfigurationSimulation> Configurations { get; private set; }
@@ -24,13 +20,11 @@ namespace ReseauBus.UI.Forms
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
 
-            // Création des contrôles
             CreerControlesConfiguration();
         }
 
         private void CreerControlesConfiguration()
         {
-            // Panel principal
             var mainPanel = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -39,30 +33,24 @@ namespace ReseauBus.UI.Forms
                 Padding = new Padding(10)
             };
 
-            // Configuration des colonnes
             mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 45F));
             mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 45F));
             mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 10F));
 
-            // Panel en haut à gauche
             var panelHautGauche = CreerPanelConfiguration("Que voulez-vous afficher en haut à gauche?", 0);
             mainPanel.Controls.Add(panelHautGauche, 0, 0);
 
-            // Panel en haut à droite
             var panelHautDroite = CreerPanelConfiguration("Que voulez-vous afficher en haut à droite?", 1);
             mainPanel.Controls.Add(panelHautDroite, 1, 0);
 
-            // Panel en bas à gauche
             var panelBasGauche = CreerPanelConfiguration("Que voulez-vous afficher en bas à gauche?", 2);
             mainPanel.Controls.Add(panelBasGauche, 0, 1);
 
-            // Panel en bas à droite
             var panelBasDroite = CreerPanelConfiguration("Que voulez-vous afficher en bas à droite?", 3);
             mainPanel.Controls.Add(panelBasDroite, 1, 1);
 
-            // Bouton Start
             var btnStart = new Button
             {
                 Text = "Start",
@@ -95,7 +83,6 @@ namespace ReseauBus.UI.Forms
                 Padding = new Padding(10)
             };
 
-            // ComboBox pour choisir la simulation
             var lblSimulation = new Label
             {
                 Text = "Choisir une simulation",
@@ -111,12 +98,10 @@ namespace ReseauBus.UI.Forms
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
 
-            // Ajouter les simulations disponibles
             cmbSimulation.Items.Add("Amiens semaine");
             cmbSimulation.Items.Add("Choisir nouveau pour créer une nouvelle simulation");
             cmbSimulation.SelectedIndex = 0;
 
-            // Contrôles de temps
             var lblDebut = new Label
             {
                 Text = "Début simulation",
@@ -153,7 +138,6 @@ namespace ReseauBus.UI.Forms
                 Value = new DateTime(2024, 1, 1, 23, 0, 0)
             };
 
-            // Type de visualisation - Textuelle uniquement
             var lblType = new Label
             {
                 Text = "Choisir le type de visualisation",
@@ -171,7 +155,6 @@ namespace ReseauBus.UI.Forms
             cmbType.Items.AddRange(new[] { "Textuelle", "Aucune" });
             cmbType.SelectedIndex = 0;
 
-            // Ajouter tous les contrôles
             panel.Controls.AddRange(new Control[] {
                 lblSimulation, cmbSimulation,
                 lblDebut, dtpDebut,
@@ -185,12 +168,10 @@ namespace ReseauBus.UI.Forms
 
         private void BtnStart_Click(object? sender, EventArgs e)
         {
-            // Collecter les configurations
             CollecterConfigurations();
 
             if (Configurations.Count > 0)
             {
-                // Lancer l'interface de simulation
                 var formSimulation = new FormSimulation(Configurations);
                 this.Hide();
                 formSimulation.ShowDialog();
@@ -218,7 +199,6 @@ namespace ReseauBus.UI.Forms
                     cmbType?.SelectedItem?.ToString() != "Aucune" &&
                     dtpDebut != null && dtpFin != null)
                 {
-                    // CORRECTION : Construire correctement les DateTime avec la date du jour
                     var aujourdhui = DateTime.Today;
                     var heureDebut = new DateTime(
                         aujourdhui.Year, 
@@ -242,8 +222,8 @@ namespace ReseauBus.UI.Forms
                     {
                         Position = (PositionPanel)i,
                         NomSimulation = cmbSimulation.SelectedItem.ToString() ?? "Amiens semaine",
-                        HeureDebut = heureDebut,  // Utiliser la vraie heure
-                        HeureFin = heureFin,      // Utiliser la vraie heure
+                        HeureDebut = heureDebut,
+                        HeureFin = heureFin,
                         TypeVisualisation = Enum.Parse<TypeVisualisation>(cmbType.SelectedItem.ToString() ?? "Textuelle")
                     };
 
@@ -254,9 +234,6 @@ namespace ReseauBus.UI.Forms
         }
     }
 
-    /// <summary>
-    /// Configuration d'une simulation pour un panneau
-    /// </summary>
     public class ConfigurationSimulation
     {
         public PositionPanel Position { get; set; }
@@ -279,4 +256,4 @@ namespace ReseauBus.UI.Forms
         Textuelle,
         Aucune
     }
-}
+}   

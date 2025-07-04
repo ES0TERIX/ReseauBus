@@ -2,9 +2,6 @@
 
 namespace ReseauBus.Core.Models
 {
-    /// <summary>
-    /// Ligne de bus - Version nettoyée
-    /// </summary>
     public class LigneBus
     {
         public string Nom { get; set; }
@@ -18,17 +15,11 @@ namespace ReseauBus.Core.Models
             ListArret = new List<Arret>();
         }
 
-        /// <summary>
-        /// Ajoute un arrêt à la ligne
-        /// </summary>
         public void AjouterArret(Arret arret)
         {
             ListArret.Add(arret);
         }
 
-        /// <summary>
-        /// Retourne l'arrêt suivant dans la ligne
-        /// </summary>
         public Arret? ArretSuivant(Arret arretActuel, bool sensAller = true)
         {
             int index = ListArret.IndexOf(arretActuel);
@@ -44,17 +35,11 @@ namespace ReseauBus.Core.Models
             }
         }
 
-        /// <summary>
-        /// Vérifie si c'est un terminus
-        /// </summary>
         public bool EstTerminus(Arret arret)
         {
             return arret == ListArret.First() || arret == ListArret.Last();
         }
 
-        /// <summary>
-        /// Retourne le nombre total d'arrêts
-        /// </summary>
         public int NombreArrets => ListArret.Count;
     }
 }

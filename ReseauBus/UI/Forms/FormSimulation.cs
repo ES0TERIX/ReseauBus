@@ -5,9 +5,6 @@ using ReseauBus.Data;
 
 namespace ReseauBus.UI.Forms
 {
-    /// <summary>
-    /// Formulaire principal de simulation - Prend en compte les heures de configuration
-    /// </summary>
     public partial class FormSimulation : Form, IInterfaceUtilisateur
     {
         private List<ConfigurationSimulation> _configurations;
@@ -27,7 +24,6 @@ namespace ReseauBus.UI.Forms
             InitialiserSimulations();
             CreerInterface();
             
-            // S'abonner aux notifications du simulateur
             _simulateur.AjouterObservateur(this);
         }
 
@@ -47,13 +43,11 @@ namespace ReseauBus.UI.Forms
             {
                 var simulation = new Simulation(config.NomSimulation);
                 
-                // CORRECTION : Utiliser les heures de la configuration
                 simulation.HeureDebut = config.HeureDebut;
                 simulation.HeureFin = config.HeureFin;
                 
                 Console.WriteLine($"[SIMULATION] {simulation.Nom} configurée: {simulation.HeureDebut:HH:mm} - {simulation.HeureFin:HH:mm}");
                 
-                // Ajouter toutes les lignes pour "Amiens semaine"
                 if (config.NomSimulation.Contains("Amiens"))
                 {
                     foreach (var ligne in lignes)
@@ -68,7 +62,6 @@ namespace ReseauBus.UI.Forms
 
         private void CreerInterface()
         {
-            // Panel principal
             var mainPanel = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -77,19 +70,16 @@ namespace ReseauBus.UI.Forms
                 Padding = new Padding(5)
             };
 
-            // Configuration des colonnes et lignes
             mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F)); // En-tête
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));  // Haut
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));  // Bas
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
 
-            // Panneau d'en-tête
             _panneauEnTete = new PanneauEnTete(_simulations.FirstOrDefault());
             mainPanel.Controls.Add(_panneauEnTete, 0, 0);
             mainPanel.SetColumnSpan(_panneauEnTete, 2);
 
-            // Créer les panneaux selon les configurations
             CreerPanneauxSimulation(mainPanel);
 
             this.Controls.Add(mainPanel);
@@ -113,7 +103,6 @@ namespace ReseauBus.UI.Forms
                 }
                 else
                 {
-                    // Pour "Aucune", on peut créer un panneau vide ou ne rien mettre
                     var panneauVide = new Panel
                     {
                         BackColor = Color.LightGray,
@@ -137,10 +126,8 @@ namespace ReseauBus.UI.Forms
 
         public void Actualiser()
         {
-            // Mettre à jour l'en-tête
             _panneauEnTete?.MettreAJour();
 
-            // Mettre à jour tous les panneaux
             foreach (var panneau in _panneaux)
             {
                 panneau.MettreAJour();
@@ -149,24 +136,19 @@ namespace ReseauBus.UI.Forms
 
         private void FormSimulation_Load(object sender, EventArgs e)
         {
-            // CORRECTION : Définir l'heure de début AVANT de lancer les simulations
             if (_simulations.Count > 0)
             {
-                // Utiliser l'heure de début de la première simulation
                 var premiereHeure = _simulations.Min(s => s.HeureDebut);
                 Console.WriteLine($"[FORM] Définition de l'heure de début à {premiereHeure:HH:mm}");
                 
-                // Arrêter l'horloge si elle est en marche
                 if (Horloge.Instance.EnMarche)
                 {
                     Horloge.Instance.Stop();
                 }
                 
-                // Définir la nouvelle heure
                 Horloge.Instance.DefinirHeureDebut(premiereHeure);
             }
             
-            // Démarrer les simulations
             foreach (var simulation in _simulations)
             {
                 _simulateur.LancerSimulation(simulation);
@@ -175,13 +157,11 @@ namespace ReseauBus.UI.Forms
 
         private void FormSimulation_FormClosing(object sender, FormClosingEventArgs e)
         {
-            // Arrêter les simulations
             foreach (var simulation in _simulations)
             {
                 _simulateur.ArreterSimulation(simulation);
             }
 
-            // Se désabonner des notifications
             _simulateur.SupprimerObservateur(this);
         }
 

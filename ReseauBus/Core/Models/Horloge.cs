@@ -2,9 +2,6 @@
 
 namespace ReseauBus.Core.Models
 {
-    /// <summary>
-    /// Horloge unique pour toute l'application - Singleton thread-safe
-    /// </summary>
     public sealed class Horloge
     {
         private static readonly object _lock = new object();
@@ -16,18 +13,14 @@ namespace ReseauBus.Core.Models
         public DateTime TempsActuel { get; private set; }
         public bool EnMarche { get; private set; }
         
-        // Événement pour notifier les changements de temps
         public event EventHandler<DateTime>? TempsChange;
 
         private Horloge()
         {
-            TempsActuel = DateTime.Today.AddHours(6); // Commence à 6h00
+            TempsActuel = DateTime.Today.AddHours(6);
             EnMarche = false;
         }
 
-        /// <summary>
-        /// Instance unique de l'horloge
-        /// </summary>
         public static Horloge Instance
         {
             get
@@ -43,9 +36,6 @@ namespace ReseauBus.Core.Models
             }
         }
 
-        /// <summary>
-        /// Démarre l'horloge de simulation
-        /// </summary>
         public void Start()
         {
             lock (_timerLock)
@@ -53,7 +43,7 @@ namespace ReseauBus.Core.Models
                 if (EnMarche) return;
 
                 EnMarche = true;
-                _timer = new System.Timers.Timer(1000); // 1 seconde = 1 minute de simulation
+                _timer = new System.Timers.Timer(1000);
                 _timer.Elapsed += OnTimerElapsed;
                 _timer.Start();
                 
@@ -61,9 +51,6 @@ namespace ReseauBus.Core.Models
             }
         }
 
-        /// <summary>
-        /// Arrête l'horloge de simulation
-        /// </summary>
         public void Stop()
         {
             lock (_timerLock)
@@ -79,9 +66,6 @@ namespace ReseauBus.Core.Models
             }
         }
 
-        /// <summary>
-        /// Définit l'heure de départ de la simulation
-        /// </summary>
         public void DefinirHeureDebut(DateTime heureDebut)
         {
             lock (_timerLock)
@@ -96,35 +80,24 @@ namespace ReseauBus.Core.Models
             }
         }
 
-        /// <summary>
-        /// Avance le temps de simulation d'une minute
-        /// </summary>
         private void Avancer()
         {
             var ancienneHeure = TempsActuel;
             TempsActuel = TempsActuel.AddMinutes(1);
             
-            // Notifier le changement
             TempsChange?.Invoke(this, TempsActuel);
             
-            // Log toutes les 10 minutes pour éviter le spam
             if (TempsActuel.Minute % 10 == 0)
             {
                 Console.WriteLine($"[HORLOGE] {TempsActuel:HH:mm}");
             }
         }
 
-        /// <summary>
-        /// Gestionnaire du timer
-        /// </summary>
         private void OnTimerElapsed(object? sender, ElapsedEventArgs e)
         {
             Avancer();
         }
 
-        /// <summary>
-        /// Remet à zéro l'horloge (pour les tests)
-        /// </summary>
         public void Reset()
         {
             lock (_timerLock)
@@ -139,9 +112,6 @@ namespace ReseauBus.Core.Models
             }
         }
 
-        /// <summary>
-        /// Dispose l'instance (pour les tests principalement)
-        /// </summary>
         public void Dispose()
         {
             Stop();

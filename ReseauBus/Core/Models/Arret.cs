@@ -1,7 +1,7 @@
 ﻿namespace ReseauBus.Core.Models
 {
     /// <summary>
-    /// Représente un arrêt de bus - Version simplifiée sans coordonnées
+    /// Représente un arrêt de bus
     /// </summary>
     public class Arret
     {
